@@ -46,6 +46,10 @@ app.get('/',(req,res)=>{
     res.render("index",{ results: null, error: null, message: null, currentPage: 1, totalPages: 1, queryText: "", selectedLanguage: "", reposText: ""});
 })
 
+app.get('/about',(req,res)=>{
+    res.render("about");
+})
+
 // this part here is for creating the github serach code api query
 app.get('/search',
      [
@@ -111,7 +115,7 @@ app.get('/search',
         if(response.status==403){
              return res.render("index", {
           results: null,
-          error: "GitHub rate limit exceeded",
+          error: "GitHub API rate limit exceeded. Please try again later.",
           message: null,
           currentPage: page,
           totalPages: 1,
@@ -124,19 +128,52 @@ app.get('/search',
         const data = await response.json();
         const totalCount = data.total_count || 0;
         const totalPages = Math.ceil(totalCount / per_page);
-        const results = (data.items || []).map((item) => ({
-        repo: item.repository.full_name,
-        file: item.name,
-        path: item.path,
-        url: `/code?owner=${item.repository.owner.login}&repo=${item.repository.name}&path=${encodeURIComponent(item.path)}`,
-        user: item.repository.owner.login,
-      }));
+        
+        // Fetch repo details for each result (stars, language, etc.)
+        const resultsWithDetails = await Promise.all((data.items || []).map(async (item) => {
+          try {
+            const repoResponse = await fetch(`https://api.github.com/repos/${item.repository.full_name}`, {
+              headers: {
+                Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                Accept: 'application/vnd.github+json'
+              }
+            });
+            
+            const repoData = await repoResponse.json();
+            
+            return {
+              repo: item.repository.full_name,
+              file: item.name,
+              path: item.path,
+              url: `/code?owner=${item.repository.owner.login}&repo=${item.repository.name}&path=${encodeURIComponent(item.path)}`,
+              user: item.repository.owner.login,
+              stars: repoData.stargazers_count || 0,
+              forks: repoData.forks_count || 0,
+              language: repoData.language || 'Unknown',
+              description: repoData.description || ''
+            };
+          } catch (err) {
+            // If repo details fetch fails, return without stats
+            return {
+              repo: item.repository.full_name,
+              file: item.name,
+              path: item.path,
+              url: `/code?owner=${item.repository.owner.login}&repo=${item.repository.name}&path=${encodeURIComponent(item.path)}`,
+              user: item.repository.owner.login,
+              stars: 0,
+              forks: 0,
+              language: 'Unknown',
+              description: ''
+            };
+          }
+        }));
+        
       let message = null;
-      if(results.length==0){
-        message = "no result found for this search";
+      if(resultsWithDetails.length==0){
+        message = "No results found for your search.";
       }
       // Adding query and page to each result link
-      const resultsWithParams = results.map(item => ({
+      const resultsWithParams = resultsWithDetails.map(item => ({
         ...item,
         url: `${item.url}&q=${encodeURIComponent(userInput)}&page=${page}${selectedLanguage ? '&language=' + selectedLanguage : ''}`
       }));

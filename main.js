@@ -161,7 +161,7 @@ app.get('/code', async (req, res) => {
         const buffer = Buffer.from(data.content, 'base64');
         const code = buffer.toString('utf-8');
 
-        res.render("codeview", { 
+        res.render("codeView", { 
             code, 
             fileName: path, 
             repo, 

@@ -22,10 +22,28 @@ app.use((req, res, next) => {
   next();
 });
 
+// Function for parsing the repos input
+function parseInput(input) {
+  const repos = [];
+  // lines main se comma, spaces remove kar diye
+  const lines = input.split(/[\n,]+/).filter(line => line.trim());
+  lines.forEach(line => {
+    line = line.trim();
+    // yaha se ham github ke url format se owner/repo format main convert karte hai
+    const urlMatch = line.match(/(?:https?:\/\/)?github\.com\/([^\/\s]+)\/([^\/\s?#]+)/);
+
+    if (urlMatch) {
+      repos.push(`${urlMatch[1]}/${urlMatch[2]}`);
+    } else if (line.match(/^[\w.-]+\/[\w.-]+$/)) {
+      repos.push(line);
+    }
+  });
+  return [...new Set(repos)];
+}
 
 app.get('/',(req,res)=>{
 
-    res.render("index",{ results: null, error: null, message: null, currentPage: 1, totalPages: 1, queryText: "", selectedLanguage: ""});
+    res.render("index",{ results: null, error: null, message: null, currentPage: 1, totalPages: 1, queryText: "", selectedLanguage: "", reposText: ""});
 })
 
 // this part here is for creating the github serach code api query
@@ -50,13 +68,16 @@ app.get('/search',
         currentPage: 1,
         totalPages: 1,
         queryText: "",
-        selectedLanguage: ""
+        selectedLanguage: "",
+        reposText:""
       });
     }
+
     // now using the api directly to retrive the data.
     try {
         const userInput = req.query.q;
         const selectedLanguage = req.query.language;
+        const reposInput = req.query.repos;
         const tokens = userInput.split(/\s+/);
         
         // yaha main language filter ka use karke uss particular language ki querry bana rha hu 
@@ -64,6 +85,16 @@ app.get('/search',
         if (selectedLanguage) {
           githubQuery += ` language:${selectedLanguage}`;
         }
+        if(reposInput && reposInput.trim()){
+          const repos = parseInput(reposInput);
+
+          if(repos && repos.length>0){
+            repos.forEach(repo=>{
+              githubQuery += ` repo:${repo}`;
+            });
+          }
+        }
+        
         
         const encodedQuery = encodeURIComponent(githubQuery.trim());
         const per_page = 10;
@@ -85,7 +116,8 @@ app.get('/search',
           currentPage: page,
           totalPages: 1,
           queryText: userInput,
-          selectedLanguage: selectedLanguage || ""
+          selectedLanguage: selectedLanguage || "",
+          reposText : reposInput || ""
         });
         }
 // data variable main fetched data dala and then use ejs page pe render kar diya .
@@ -115,7 +147,8 @@ app.get('/search',
         currentPage: page,
         totalPages,
         queryText: userInput,
-        selectedLanguage: selectedLanguage || "" });
+        selectedLanguage: selectedLanguage || "",
+      reposText: reposInput || "" });
 
     } catch (err) {
       res.render("index", {
@@ -125,7 +158,8 @@ app.get('/search',
         currentPage: 1,
         totalPages: 1,
         queryText: req.query.q || "",
-        selectedLanguage: req.query.language || ""
+        selectedLanguage: req.query.language || "",
+        reposText : req.query.repos || ""
       });
     }
 
@@ -168,7 +202,8 @@ app.get('/code', async (req, res) => {
             owner, 
             query: q || '', 
             page: page || 1,
-            language: language || ''
+            language: language || '',
+            reposText: ""
         });
 
     } catch (err) {

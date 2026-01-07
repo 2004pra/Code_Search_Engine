@@ -118,6 +118,23 @@
               Search
             </button>
           </div>
+          
+          <!-- Repository Filter Input (Optional) -->
+          <div class="mt-4">
+            <label for="repos" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Filter by Repositories (Optional)
+            </label>
+            <textarea
+              id="repos"
+              name="repos"
+              rows="3"
+              class="w-full px-4 py-3 rounded-lg outline-none bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-node-green dark:focus:border-node-green transition-colors resize-none text-sm"
+              placeholder="Enter repositories (one per line or comma-separated)&#10;Examples:&#10;  microsoft/vscode&#10;  https://github.com/facebook/react&#10;  nodejs/node, torvalds/linux"
+            ><%= reposText %></textarea>
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Leave empty to search all repositories. Supports formats: owner/repo or GitHub URLs
+            </p>
+          </div>
         </form>
       </div>
 

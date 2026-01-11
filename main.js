@@ -141,6 +141,30 @@ app.get('/search',
             
             const repoData = await repoResponse.json();
             
+            // Fetch code content for preview
+            let codePreview = '';
+            try {
+              const codeResponse = await fetch(`https://api.github.com/repos/${item.repository.full_name}/contents/${encodeURIComponent(item.path)}`, {
+                headers: {
+                  Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                  Accept: 'application/vnd.github+json'
+                }
+              });
+              
+              if (codeResponse.ok) {
+                const codeData = await codeResponse.json();
+                if (codeData.content) {
+                  const fullCode = Buffer.from(codeData.content, 'base64').toString('utf-8');
+                  const lines = fullCode.split('\n');
+                  // Get first 6 lines for preview
+                  codePreview = lines.slice(0, 6).join('\n');
+                }
+              }
+            } catch (codeErr) {
+              // If code fetch fails, just continue without preview
+              codePreview = '';
+            }
+            
             return {
               repo: item.repository.full_name,
               file: item.name,
@@ -150,7 +174,8 @@ app.get('/search',
               stars: repoData.stargazers_count || 0,
               forks: repoData.forks_count || 0,
               language: repoData.language || 'Unknown',
-              description: repoData.description || ''
+              description: repoData.description || '',
+              codePreview: codePreview
             };
           } catch (err) {
             // If repo details fetch fails, return without stats
@@ -163,7 +188,8 @@ app.get('/search',
               stars: 0,
               forks: 0,
               language: 'Unknown',
-              description: ''
+              description: '',
+              codePreview: ''
             };
           }
         }));
@@ -203,14 +229,15 @@ app.get('/search',
 });
 
 app.get('/code', async (req, res) => {
-    const { owner, repo, path, q, page, language } = req.query;
+    const { owner, repo, path: filePath, q, page, language } = req.query;
 
-    if (!owner || !repo || !path) {
+    if (!owner || !repo || !filePath) {
         return res.send("Missing required parameters.");
     }
 
     try {
-        const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
+        // Fetch the code file
+        const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(filePath)}`;
         const response = await fetch(url, {
             headers: {
                 Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
@@ -234,7 +261,7 @@ app.get('/code', async (req, res) => {
 
         res.render("codeView", { 
             code, 
-            fileName: path, 
+            fileName: filePath, 
             repo, 
             owner, 
             query: q || '', 

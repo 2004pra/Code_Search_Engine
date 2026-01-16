@@ -1,0 +1,22 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-node-green: #68A063;
+  --color-node-dark: #333333;
+}
+
+/* Smooth theme transition helper (opt-in on toggle only) */
+.theme-transition,
+.theme-transition * {
+  transition-property: color, background-color, border-color, fill, stroke, box-shadow;
+  transition-duration: 250ms;
+  transition-timing-function: ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-transition,
+  .theme-transition * {
+    transition: none !important;
+  }
+}

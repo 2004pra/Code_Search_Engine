@@ -5,6 +5,8 @@
   "main": "main.js",
   "scripts": {
     "start": "node main.js",
+    "build:css": "node build-css.js",
+    "dev": "npm run build:css && node main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -21,5 +23,11 @@
     "express-validator": "^7.3.1",
     "marked": "^17.0.1",
     "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18"
   }
 }
